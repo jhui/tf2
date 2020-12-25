@@ -41,6 +41,8 @@ test_dataset = dataset.drop(train_dataset.index)
 sns.pairplot(train_dataset[['MPG', 'Cylinders', 'Displacement', 'Weight']], diag_kind='kde')
 plt.show()
 
+# train_features is a Pandas DataFrame and we fit them
+# to model directly for training.
 train_features = train_dataset.copy()
 test_features = test_dataset.copy()
 
