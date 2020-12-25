@@ -6,21 +6,15 @@ import tensorflow as tf
 
 import tensorflow_docs as tfdocs
 import tensorflow_docs.modeling
-import tensorflow_docs.plots
 
 from tensorflow.keras import layers
 from tensorflow.keras import regularizers
-
-from IPython import display
-from matplotlib import pyplot as plt
-
-import numpy as np
 
 import pathlib
 import shutil
 import tempfile
 
-# Remove TensorFlow log directory
+# Remove TensorBoard log directory
 logdir = pathlib.Path(tempfile.mkdtemp()) / "tensorboard_logs"
 shutil.rmtree(logdir, ignore_errors=True)
 
@@ -32,7 +26,7 @@ FEATURES = 28
 ds = tf.data.experimental.CsvDataset(gz, [float(), ] * (FEATURES + 1), compression_type="GZIP")
 
 
-# Repack data as (feature_vector, label)
+# Repack data as (feature_vectors, labels)
 def pack_row(*row):
     label = row[0]
     features = tf.stack(row[1:], 1)
@@ -58,6 +52,7 @@ train_ds = packed_ds.skip(N_VALIDATION).take(N_TRAIN).cache()
 validate_ds = validate_ds.batch(BATCH_SIZE)
 train_ds = train_ds.shuffle(BUFFER_SIZE).repeat().batch(BATCH_SIZE)
 
+# Create a custom schedule for learning rate decay
 lr_schedule = tf.keras.optimizers.schedules.InverseTimeDecay(
     0.001,
     decay_steps=STEPS_PER_EPOCH * 1000,
@@ -70,11 +65,11 @@ def get_optimizer():
     return tf.keras.optimizers.Adam(lr_schedule)
 
 
-# Also enable TensorBoard logging
 def get_callbacks(name):
     return [
         tfdocs.modeling.EpochDots(),  # Just print a single dot for each epoch
         tf.keras.callbacks.EarlyStopping(monitor='val_binary_crossentropy', patience=200),
+        # Also enable TensorBoard logging during training
         tf.keras.callbacks.TensorBoard(logdir / name),
     ]
 
