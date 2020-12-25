@@ -1,3 +1,5 @@
+# Modified from
+# https://www.tensorflow.org/tutorials/quickstart/beginner
 import tensorflow as tf
 
 mnist = tf.keras.datasets.mnist
@@ -5,6 +7,9 @@ mnist = tf.keras.datasets.mnist
 # x_train (60000, 28, 28) float64 y_train (60000,)
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
 x_train, x_test = x_train / 255.0, x_test / 255.0
+
+x_train = x_train.astype("float32")
+x_test = x_test.astype("float32")
 
 model = tf.keras.models.Sequential([
     tf.keras.layers.Flatten(input_shape=(28, 28)),
