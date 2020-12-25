@@ -95,6 +95,8 @@ model = tf.keras.Sequential([
     layers.Dropout(0.2),
     layers.Dense(1)])
 
+model.summary()
+
 model.compile(loss=losses.BinaryCrossentropy(from_logits=True),
               optimizer='adam',
               metrics=tf.metrics.BinaryAccuracy(threshold=0.0))

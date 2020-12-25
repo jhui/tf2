@@ -38,3 +38,4 @@ result = probability_model(x_test[:5])
 
 print(result)
 
+model.summary()
