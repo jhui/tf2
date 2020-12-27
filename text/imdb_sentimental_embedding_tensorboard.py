@@ -7,10 +7,8 @@ import re
 import shutil
 import string
 import tensorflow as tf
-
-from datetime import datetime
-from tensorflow.keras import Model, Sequential
-from tensorflow.keras.layers import Activation, Dense, Embedding, GlobalAveragePooling1D
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import Dense, Embedding, GlobalAveragePooling1D
 from tensorflow.keras.layers.experimental.preprocessing import TextVectorization
 
 url = "https://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz"
@@ -38,9 +36,6 @@ AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 train_ds = train_ds.cache().prefetch(buffer_size=AUTOTUNE)
 val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
-
-# Embed a 1,000 word vocabulary into 5 dimensions.
-embedding_layer = tf.keras.layers.Embedding(1000, 5)
 
 
 # Create a custom standardization function to strip HTML break tags '<br />'.
@@ -93,6 +88,8 @@ model.fit(
 weights = model.get_layer('embedding').get_weights()[0]
 vocab = vectorize_layer.get_vocabulary()
 
+# your can load both files in http://projector.tensorflow.org/
+# to view the embedding
 out_v = io.open('vectors.tsv', 'w', encoding='utf-8')
 out_m = io.open('metadata.tsv', 'w', encoding='utf-8')
 
@@ -103,3 +100,6 @@ for index, word in enumerate(vocab):
     out_m.write(word + "\n")
 out_v.close()
 out_m.close()
+
+# %tensorboard --logdir logs
+
