@@ -17,7 +17,7 @@ class MyDenseLayer(tf.keras.layers.Layer):
 
 layer = MyDenseLayer(10)
 
-_ = layer(tf.zeros([10, 5])) # Calling the layer `.builds` it.
+_ = layer(tf.zeros([10, 5]))  # Calling the layer `.builds` automatically.
 
 class ResnetIdentityBlock(tf.keras.Model):
   def __init__(self, kernel_size, filters):
