@@ -1,3 +1,6 @@
+# Modified from
+# https://www.tensorflow.org/tutorials/load_data/text#example_2_predict_the_author_of_illiad_translations
+
 import collections
 import pathlib
 import tensorflow as tf
