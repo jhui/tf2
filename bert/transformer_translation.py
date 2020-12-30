@@ -438,7 +438,7 @@ def create_masks(inp, tar):
     return enc_padding_mask, combined_mask, dec_padding_mask
 
 
-checkpoint_path = "./checkpoints/train"
+checkpoint_path = "../sequence_to_sequence/checkpoints/train"
 
 ckpt = tf.train.Checkpoint(transformer=transformer,
                            optimizer=optimizer)
