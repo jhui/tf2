@@ -1,3 +1,6 @@
+# Modified from
+# https://www.tensorflow.org/tutorials/text/nmt_with_attention
+
 import tensorflow as tf
 
 import matplotlib.pyplot as plt
@@ -56,6 +59,8 @@ def create_dataset(path, num_examples):
     return zip(*word_pairs)
 
 
+# Convert text into a a sequence of int
+# Lang contains 30,000 sentences/phrases
 def tokenize(lang):
     lang_tokenizer = tf.keras.preprocessing.text.Tokenizer(
         filters='')
@@ -63,12 +68,15 @@ def tokenize(lang):
 
     tensor = lang_tokenizer.texts_to_sequences(lang)
 
+    # Shape (30000, 16) int32
     tensor = tf.keras.preprocessing.sequence.pad_sequences(tensor,
                                                            padding='post')
 
     return tensor, lang_tokenizer
 
 
+# Given a translation file containing source and target text,
+# return source and target integer sequence and tokenizers
 def load_dataset(path, num_examples=None):
     # creating cleaned input, output pairs
     targ_lang, inp_lang = create_dataset(path, num_examples)
@@ -82,21 +90,16 @@ def load_dataset(path, num_examples=None):
 # Smaller sample size for faster training
 # Try experimenting with the size of that dataset
 num_examples = 30000
-input_tensor, target_tensor, inp_lang, targ_lang = load_dataset(path_to_file, num_examples)
+input_tensor, target_tensor, inp_lang, targ_lang = load_dataset(
+                                            path_to_file, num_examples)
 
 # Calculate max_length of the target tensors
 max_length_targ, max_length_inp = target_tensor.shape[1], input_tensor.shape[1]
 
 # Creating training and validation sets using an 80-20 split
+# 24000 samples for training 6000 for validation
 input_tensor_train, input_tensor_val, target_tensor_train, target_tensor_val = \
     train_test_split(input_tensor, target_tensor, test_size=0.2)
-
-
-def convert(lang, tensor):
-    for t in tensor:
-        if t != 0:
-            print("%d ----> %s" % (t, lang.index_word[t]))
-
 
 BUFFER_SIZE = len(input_tensor_train)
 BATCH_SIZE = 64
@@ -106,7 +109,8 @@ units = 1024
 vocab_inp_size = len(inp_lang.word_index) + 1
 vocab_tar_size = len(targ_lang.word_index) + 1
 
-dataset = tf.data.Dataset.from_tensor_slices((input_tensor_train, target_tensor_train)).shuffle(BUFFER_SIZE)
+dataset = tf.data.Dataset.from_tensor_slices(
+    (input_tensor_train, target_tensor_train)).shuffle(BUFFER_SIZE)
 dataset = dataset.batch(BATCH_SIZE, drop_remainder=True)
 
 
@@ -225,10 +229,16 @@ def train_step(inp, targ, enc_hidden):
     loss = 0
 
     with tf.GradientTape() as tape:
+        # enc_output: the hidden stats for the whole sequence
+        # shape: (batch size, seq. len, hidden dim.)
+        # enc_hidden: the last sequence in enc_output
+        # shape: (batch size, hidden dim.)
         enc_output, enc_hidden = encoder(inp, enc_hidden)
 
+        # Use the last encoder hidden state to initialize decoder
         dec_hidden = enc_hidden
 
+        # Feed the start token as the first input sequence to the decoder
         dec_input = tf.expand_dims([targ_lang.word_index['<start>']] * BATCH_SIZE, 1)
 
         # Teacher forcing - feeding the target as the next input
@@ -239,6 +249,7 @@ def train_step(inp, targ, enc_hidden):
             loss += loss_function(targ[:, t], predictions)
 
             # using teacher forcing
+            # use the target label as the next input
             dec_input = tf.expand_dims(targ[:, t], 1)
 
     batch_loss = (loss / int(targ.shape[1]))
@@ -252,8 +263,7 @@ def train_step(inp, targ, enc_hidden):
     return batch_loss
 
 
-# EPOCHS = 10
-EPOCHS = 1
+EPOCHS = 10
 
 for epoch in range(EPOCHS):
     start = time.time()
