@@ -7,13 +7,14 @@ import os
 import time
 
 path_to_file = tf.keras.utils.get_file('shakespeare.txt',
-                                       'https://storage.googleapis.com/download.tensorflow.org/data/shakespeare.txt')
+  'https://storage.googleapis.com/download.tensorflow.org/data/shakespeare.txt')
 
 # Read, then decode for py2 compat.
+# text contains 1115394 characters
 text = open(path_to_file, 'rb').read().decode(encoding='utf-8')
 
 # The unique characters in the file
-vocab = sorted(set(text))
+vocab = sorted(set(text))  # 65 unique characters
 
 # Creating a mapping from unique characters to indices
 char2idx = {u: i for i, u in enumerate(vocab)}
@@ -105,6 +106,7 @@ history = model.fit(dataset, epochs=EPOCHS, callbacks=[checkpoint_callback])
 
 model = build_model(vocab_size, embedding_dim, rnn_units, batch_size=1)
 model.load_weights(tf.train.latest_checkpoint(checkpoint_dir))
+
 model.build(tf.TensorShape([1, None]))
 
 
