@@ -1,3 +1,5 @@
+# Modified fom
+# https://www.tensorflow.org/tutorials/text/image_captioning
 import tensorflow as tf
 
 # You'll generate plots of attention in order to see which parts of an image
@@ -55,6 +57,9 @@ random.shuffle(image_paths)
 # lead to 30,000 examples.
 train_image_paths = image_paths[:6000]
 
+# Train_captions hold a list of captions.
+# img_name_vector holds a list of the corresponding file.
+# An image can have multiple captions.
 train_captions = []
 img_name_vector = []
 
@@ -89,12 +94,16 @@ image_dataset = image_dataset.map(
 
 for img, path in image_dataset:
     batch_features = image_features_extract_model(img)
+    # flatten: (16, 8, 8, 2048) -> (16, 64, 2048)
     batch_features = tf.reshape(batch_features,
                                 (batch_features.shape[0], -1, batch_features.shape[3]))
 
+    # Save the features into a file
     for bf, p in zip(batch_features, path):
         path_of_feature = p.numpy().decode("utf-8")
         np.save(path_of_feature, bf.numpy())
+
+# Preprocess and tokenize the captions #
 
 
 # Find the maximum length of any caption in our dataset
@@ -148,7 +157,6 @@ for imgv in img_name_val_keys:
     img_name_val.extend([imgv] * capv_len)
     cap_val.extend(img_to_cap_vector[imgv])
 
-len(img_name_train), len(cap_train), len(img_name_val), len(cap_val)
 
 # Feel free to change these parameters according to your system's configuration
 
