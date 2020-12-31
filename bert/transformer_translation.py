@@ -1,35 +1,36 @@
+# Modified from
+# https://www.tensorflow.org/tutorials/text/transformer
+
 import tensorflow_datasets as tfds
 import tensorflow as tf
-
 import time
 import numpy as np
 import matplotlib.pyplot as plt
 
+# This dataset contains approximately 50000 training examples,
+# 1100 validation examples, and 2000 test examples
+# to translate Portuguese to English
 examples, metadata = tfds.load('ted_hrlr_translate/pt_to_en', with_info=True,
                                as_supervised=True)
 train_examples, val_examples = examples['train'], examples['validation']
 
+# Create a custom sub-words tokenizer from the training dataset.
+# If a word is not in the vocabulary,
+# The tokenizer breaks it into subwords and encode it.
 tokenizer_en = tfds.deprecated.text.SubwordTextEncoder.build_from_corpus(
     (en.numpy() for pt, en in train_examples), target_vocab_size=2 ** 13)
 
 tokenizer_pt = tfds.deprecated.text.SubwordTextEncoder.build_from_corpus(
     (pt.numpy() for pt, en in train_examples), target_vocab_size=2 ** 13)
 
-sample_string = 'Transformer is awesome.'
-
-tokenized_string = tokenizer_en.encode(sample_string)
-print('Tokenized string is {}'.format(tokenized_string))
-
-original_string = tokenizer_en.decode(tokenized_string)
-print('The original string: {}'.format(original_string))
-
-assert original_string == sample_string
-
 BUFFER_SIZE = 20000
 BATCH_SIZE = 64
 
 
+# Add a start and end token to the input and target.
 def encode(lang1, lang2):
+    # Start token uses the index tokenizer_pt.vocab_size
+    # End token uses the index tokenizer_pt.vocab_size + 1
     lang1 = [tokenizer_pt.vocab_size] + tokenizer_pt.encode(
         lang1.numpy()) + [tokenizer_pt.vocab_size + 1]
 
@@ -40,6 +41,8 @@ def encode(lang1, lang2):
 
 
 def tf_encode(pt, en):
+    # dataset.map runs in graph mode. It needs ty.py_function to wrap
+    # any Python/numpy functions.
     result_pt, result_en = tf.py_function(encode, [pt, en], [tf.int64, tf.int64])
     result_pt.set_shape([None])
     result_en.set_shape([None])
@@ -47,6 +50,7 @@ def tf_encode(pt, en):
     return result_pt, result_en
 
 
+# To run the example faster, drop samples with length over 40 tokens
 MAX_LENGTH = 40
 
 
@@ -125,12 +129,15 @@ def scaled_dot_product_attention(q, k, v, mask):
     scaled_attention_logits = matmul_qk / tf.math.sqrt(dk)
 
     # add the mask to the scaled tensor.
+    # If the input should be ignored, we add a large negative number
+    # to the logit score. So its softmax output is 0.
     if mask is not None:
         scaled_attention_logits += (mask * -1e9)
 
     # softmax is normalized on the last axis (seq_len_k) so that the scores
     # add up to 1.
-    attention_weights = tf.nn.softmax(scaled_attention_logits, axis=-1)  # (..., seq_len_q, seq_len_k)
+    # (..., seq_len_q, seq_len_k)
+    attention_weights = tf.nn.softmax(scaled_attention_logits, axis=-1)
 
     output = tf.matmul(attention_weights, v)  # (..., seq_len_q, depth_v)
 
@@ -155,7 +162,8 @@ class MultiHeadAttention(tf.keras.layers.Layer):
 
     def split_heads(self, x, batch_size):
         """Split the last dimension into (num_heads, depth).
-        Transpose the result such that the shape is (batch_size, num_heads, seq_len, depth)
+        Transpose the result such that the shape is
+        (batch_size, num_heads, seq_len, depth)
         """
         x = tf.reshape(x, (batch_size, -1, self.num_heads, self.depth))
         return tf.transpose(x, perm=[0, 2, 1, 3])
@@ -167,20 +175,25 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         k = self.wk(k)  # (batch_size, seq_len, d_model)
         v = self.wv(v)  # (batch_size, seq_len, d_model)
 
-        q = self.split_heads(q, batch_size)  # (batch_size, num_heads, seq_len_q, depth)
-        k = self.split_heads(k, batch_size)  # (batch_size, num_heads, seq_len_k, depth)
-        v = self.split_heads(v, batch_size)  # (batch_size, num_heads, seq_len_v, depth)
+        # (batch_size, num_heads, seq_len_q, depth)
+        # (batch_size, num_heads, seq_len_k, depth)
+        # (batch_size, num_heads, seq_len_v, depth)
+        q = self.split_heads(q, batch_size)
+        k = self.split_heads(k, batch_size)
+        v = self.split_heads(v, batch_size)
 
         # scaled_attention.shape == (batch_size, num_heads, seq_len_q, depth)
         # attention_weights.shape == (batch_size, num_heads, seq_len_q, seq_len_k)
         scaled_attention, attention_weights = scaled_dot_product_attention(
             q, k, v, mask)
 
+        # (batch_size, seq_len_q, num_heads, depth)
         scaled_attention = tf.transpose(scaled_attention,
-                                        perm=[0, 2, 1, 3])  # (batch_size, seq_len_q, num_heads, depth)
+                                        perm=[0, 2, 1, 3])
 
+        # (batch_size, seq_len_q, d_model)
         concat_attention = tf.reshape(scaled_attention,
-                                      (batch_size, -1, self.d_model))  # (batch_size, seq_len_q, d_model)
+                                      (batch_size, -1, self.d_model))
 
         output = self.dense(concat_attention)  # (batch_size, seq_len_q, d_model)
 
@@ -341,13 +354,15 @@ class Transformer(tf.keras.Model):
 
     def call(self, inp, tar, training, enc_padding_mask,
              look_ahead_mask, dec_padding_mask):
-        enc_output = self.encoder(inp, training, enc_padding_mask)  # (batch_size, inp_seq_len, d_model)
+        # (batch_size, inp_seq_len, d_model)
+        enc_output = self.encoder(inp, training, enc_padding_mask)
 
         # dec_output.shape == (batch_size, tar_seq_len, d_model)
         dec_output, attention_weights = self.decoder(
             tar, enc_output, training, look_ahead_mask, dec_padding_mask)
 
-        final_output = self.final_layer(dec_output)  # (batch_size, tar_seq_len, target_vocab_size)
+        # (batch_size, tar_seq_len, target_vocab_size)
+        final_output = self.final_layer(dec_output)
 
         return final_output, attention_weights
 
