@@ -1,6 +1,6 @@
-# Modified from https://www.tensorflow.org/tutorials/generative/autoencoder
+# Modified from
+# https://www.tensorflow.org/tutorials/generative/autoencoder
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -15,9 +15,6 @@ from tensorflow.keras.models import Model
 
 x_train = x_train.astype('float32') / 255.
 x_test = x_test.astype('float32') / 255.
-
-print (x_train.shape)
-print (x_test.shape)
 
 latent_dim = 64
 
@@ -39,6 +36,7 @@ class Autoencoder(Model):
     decoded = self.decoder(encoded)
     return decoded
 
+
 autoencoder = Autoencoder(latent_dim)
 
 autoencoder.compile(optimizer='adam', loss=losses.MeanSquaredError())
@@ -52,26 +50,8 @@ autoencoder.fit(x_train, x_train,
 encoded_imgs = autoencoder.encoder(x_test).numpy()
 decoded_imgs = autoencoder.decoder(encoded_imgs).numpy()
 
-n = 10
-plt.figure(figsize=(20, 4))
-for i in range(n):
-  # display original
-  ax = plt.subplot(2, n, i + 1)
-  plt.imshow(x_test[i])
-  plt.title("original")
-  plt.gray()
-  ax.get_xaxis().set_visible(False)
-  ax.get_yaxis().set_visible(False)
 
-  # display reconstruction
-  ax = plt.subplot(2, n, i + 1 + n)
-  plt.imshow(decoded_imgs[i])
-  plt.title("reconstructed")
-  plt.gray()
-  ax.get_xaxis().set_visible(False)
-  ax.get_yaxis().set_visible(False)
-plt.show()
-
+# Image Denoising #
 (x_train, _), (x_test, _) = fashion_mnist.load_data()
 
 x_train = x_train.astype('float32') / 255.
@@ -80,8 +60,7 @@ x_test = x_test.astype('float32') / 255.
 x_train = x_train[..., tf.newaxis]
 x_test = x_test[..., tf.newaxis]
 
-print(x_train.shape)
-
+# Add random noise to image
 noise_factor = 0.2
 x_train_noisy = x_train + noise_factor * tf.random.normal(shape=x_train.shape)
 x_test_noisy = x_test + noise_factor * tf.random.normal(shape=x_test.shape)
@@ -89,14 +68,6 @@ x_test_noisy = x_test + noise_factor * tf.random.normal(shape=x_test.shape)
 x_train_noisy = tf.clip_by_value(x_train_noisy, clip_value_min=0., clip_value_max=1.)
 x_test_noisy = tf.clip_by_value(x_test_noisy, clip_value_min=0., clip_value_max=1.)
 
-n = 10
-plt.figure(figsize=(20, 2))
-for i in range(n):
-    ax = plt.subplot(1, n, i + 1)
-    plt.title("original + noise")
-    plt.imshow(tf.squeeze(x_test_noisy[i]))
-    plt.gray()
-plt.show()
 
 class Denoise(Model):
   def __init__(self):
@@ -125,33 +96,11 @@ autoencoder.fit(x_train_noisy, x_train,
                 shuffle=True,
                 validation_data=(x_test_noisy, x_test))
 
-autoencoder.encoder.summary()
-
-autoencoder.decoder.summary()
 
 encoded_imgs = autoencoder.encoder(x_test).numpy()
 decoded_imgs = autoencoder.decoder(encoded_imgs).numpy()
 
-n = 10
-plt.figure(figsize=(20, 4))
-for i in range(n):
-
-    # display original + noise
-    ax = plt.subplot(2, n, i + 1)
-    plt.title("original + noise")
-    plt.imshow(tf.squeeze(x_test_noisy[i]))
-    plt.gray()
-    ax.get_xaxis().set_visible(False)
-    ax.get_yaxis().set_visible(False)
-
-    # display reconstruction
-    bx = plt.subplot(2, n, i + n + 1)
-    plt.title("reconstructed")
-    plt.imshow(tf.squeeze(decoded_imgs[i]))
-    plt.gray()
-    bx.get_xaxis().set_visible(False)
-    bx.get_yaxis().set_visible(False)
-plt.show()
+# Anomaly detection #
 
 # Download the dataset
 dataframe = pd.read_csv('http://storage.googleapis.com/download.tensorflow.org/data/ecg.csv', header=None)
@@ -186,15 +135,6 @@ normal_test_data = test_data[test_labels]
 anomalous_train_data = train_data[~train_labels]
 anomalous_test_data = test_data[~test_labels]
 
-plt.grid()
-plt.plot(np.arange(140), normal_train_data[0])
-plt.title("A Normal ECG")
-plt.show()
-
-plt.grid()
-plt.plot(np.arange(140), anomalous_train_data[0])
-plt.title("An Anomalous ECG")
-plt.show()
 
 class AnomalyDetector(Model):
   def __init__(self):
@@ -224,46 +164,24 @@ history = autoencoder.fit(normal_train_data, normal_train_data,
           validation_data=(test_data, test_data),
           shuffle=True)
 
-plt.plot(history.history["loss"], label="Training Loss")
-plt.plot(history.history["val_loss"], label="Validation Loss")
-plt.legend()
-
 encoded_imgs = autoencoder.encoder(normal_test_data).numpy()
 decoded_imgs = autoencoder.decoder(encoded_imgs).numpy()
-
-plt.plot(normal_test_data[0],'b')
-plt.plot(decoded_imgs[0],'r')
-plt.fill_between(np.arange(140), decoded_imgs[0], normal_test_data[0], color='lightcoral' )
-plt.legend(labels=["Input", "Reconstruction", "Error"])
-plt.show()
 
 encoded_imgs = autoencoder.encoder(anomalous_test_data).numpy()
 decoded_imgs = autoencoder.decoder(encoded_imgs).numpy()
 
-plt.plot(anomalous_test_data[0],'b')
-plt.plot(decoded_imgs[0],'r')
-plt.fill_between(np.arange(140), decoded_imgs[0], anomalous_test_data[0], color='lightcoral' )
-plt.legend(labels=["Input", "Reconstruction", "Error"])
-plt.show()
 
+# Compute the reconstuction loss for normal training data
 reconstructions = autoencoder.predict(normal_train_data)
 train_loss = tf.keras.losses.mae(reconstructions, normal_train_data)
 
-plt.hist(train_loss, bins=50)
-plt.xlabel("Train loss")
-plt.ylabel("No of examples")
-plt.show()
-
+# Loss threshold : 1 SD from the mean
 threshold = np.mean(train_loss) + np.std(train_loss)
 print("Threshold: ", threshold)
 
 reconstructions = autoencoder.predict(anomalous_test_data)
 test_loss = tf.keras.losses.mae(reconstructions, anomalous_test_data)
 
-plt.hist(test_loss, bins=50)
-plt.xlabel("Test loss")
-plt.ylabel("No of examples")
-plt.show()
 
 def predict(model, data, threshold):
   reconstructions = model(data)

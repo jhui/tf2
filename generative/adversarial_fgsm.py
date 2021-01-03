@@ -34,13 +34,6 @@ image = tf.image.decode_image(image_raw)
 image = preprocess(image)
 image_probs = pretrained_model.predict(image)
 
-plt.figure()
-plt.imshow(image[0]*0.5+0.5) # To change [-1, 1] to [0,1]
-_, image_class, class_confidence = get_imagenet_label(image_probs)
-plt.title('{} : {:.2f}% Confidence'.format(image_class, class_confidence*100))
-plt.show()
-
-
 loss_object = tf.keras.losses.CategoricalCrossentropy()
 
 def create_adversarial_pattern(input_image, input_label):
@@ -62,17 +55,6 @@ label = tf.one_hot(labrador_retriever_index, image_probs.shape[-1])
 label = tf.reshape(label, (1, image_probs.shape[-1]))
 
 perturbations = create_adversarial_pattern(image, label)
-plt.imshow(perturbations[0]*0.5+0.5); # To change [-1, 1] to [0,1]
-
-
-def display_images(image, description):
-  _, label, confidence = get_imagenet_label(pretrained_model.predict(image))
-  plt.figure()
-  plt.imshow(image[0]*0.5+0.5)
-  plt.title('{} \n {} : {:.2f}% Confidence'.format(description,
-                                                   label, confidence*100))
-  plt.show()
-
 
 epsilons = [0, 0.01, 0.1, 0.15]
 descriptions = [('Epsilon = {:0.3f}'.format(eps) if eps else 'Input')
@@ -81,5 +63,4 @@ descriptions = [('Epsilon = {:0.3f}'.format(eps) if eps else 'Input')
 for i, eps in enumerate(epsilons):
   adv_x = image + eps*perturbations
   adv_x = tf.clip_by_value(adv_x, -1, 1)
-  display_images(adv_x, descriptions[i])
 
