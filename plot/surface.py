@@ -19,8 +19,8 @@ mean2 = [ 14.20726944, 4.61513787]
 cov2  = [[ 0.78486096, -0.13042758], [-0.13042758, 0.80928813]]
 
 
-x = np.linspace(0, 20, 700)
-y = np.linspace(0, 20, 700)
+x = np.linspace(0, 20, 100)
+y = np.linspace(0, 20, 100)
 X, Y = np.meshgrid(x, y)
 Z0 = np.random.random((len(x),len(y)))
 Z1 = np.random.random((len(x),len(y)))
