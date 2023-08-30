@@ -1,0 +1,53 @@
+functions = [
+    {
+        "name": "get_tax_bracket",
+        "description": "Get information on the tax bracket",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "max": {
+                    "type": "string",
+                    "description": "maximum rate, e.g. 13.1%",
+                },
+                "min": {
+                    "type": "string",
+                    "description": "minimum rate, e.g. 1.2%",
+                },
+                "state": {
+                    "type": "string",
+                    "description": "State, e.g. New York",
+                },
+            },
+            "required": ["max", "min", "state"],
+        },
+    },
+    {
+        "name": "get_capital_gain_rate",
+        "description": "Get information on the capital gain rate",
+        "parameters": {
+
+
+{'role': 'assistant',
+ 'content': None,
+ 'function_call': {'name': 'get_tax_bracket',
+  'arguments': '{\n  "max": "13.3%",\n  "min": "1%",\n  "state": "California"\n'}}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
